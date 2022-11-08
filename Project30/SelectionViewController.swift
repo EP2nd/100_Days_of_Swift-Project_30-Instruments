@@ -16,28 +16,39 @@ class SelectionViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-		title = "Reactionist"
         
-		tableView.rowHeight = 90
-		tableView.separatorStyle = .none
+        title = "Reactionist"
+        
+        tableView.rowHeight = 90
+        tableView.separatorStyle = .none
         // MARK: - First part of second solution to wasted allocations:
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
         // MARK: - End of first part of second solution to wasted allocations.
         
-		// load all the JPEGs into our array
-		let fm = FileManager.default
-
-		if let tempItems = try? fm.contentsOfDirectory(atPath: Bundle.main.resourcePath!) {
-			for item in tempItems {
-				if item.range(of: "Large") != nil {
-					items.append(item)
-				}
-			}
-		}
+        // load all the JPEGs into our array
+        let fm = FileManager.default
+        
+        /// Challenge 1, step 1:
+//        if let tempItems = try? fm.contentsOfDirectory(atPath: Bundle.main.resourcePath!) {
+//            for item in tempItems {
+//                if item.range(of: "Large") != nil {
+//                    items.append(item)
+//                }
+//            }
+//        }
+        if let path = Bundle.main.resourcePath {
+            if let tempItems = try? fm.contentsOfDirectory(atPath: path) {
+                for item in tempItems {
+                    if item.range(of: "Large") != nil {
+                        items.append(item)
+                    }
+                }
+            }
+        }
+        /// End of challenge 1, step 1.
     }
-
-	override func viewWillAppear(_ animated: Bool) {
+    
+    override func viewWillAppear(_ animated: Bool) {
 		super.viewWillAppear(animated)
 
 		if dirty {
@@ -77,42 +88,47 @@ class SelectionViewController: UITableViewController {
 		// find the image for this cell, and load its thumbnail
 		let currentImage = items[indexPath.row % items.count]
 		let imageRootName = currentImage.replacingOccurrences(of: "Large", with: "Thumb")
-		let path = Bundle.main.path(forResource: imageRootName, ofType: nil)!
-		let original = UIImage(contentsOfFile: path)!
-
-
-        // MARK: - Option 2, part 1:
-        let renderRect = CGRect(origin: .zero, size: CGSize(width: 90, height: 90)) // <- Points, multiplied by 2 or 3, depending on the device.
-        //let renderer = UIGraphicsImageRenderer(size: original.size)
-        let renderer = UIGraphicsImageRenderer(size: renderRect.size)
-        // MARK: - End of option 2, part 1.
-        
-		let rounded = renderer.image { ctx in
-            // MARK: - Option 1:
-//            ctx.cgContext.setShadow(offset: .zero, blur: 200, color: UIColor.black.cgColor)
-//            ctx.cgContext.fillEllipse(in: CGRect(origin: .zero, size: original.size))
-//            ctx.cgContext.setShadow(offset: .zero, blur: .zero, color: nil)
-            // MARK: - End of option 1.
+        /// Challenge 1, step 2:
+//		let path = Bundle.main.path(forResource: imageRootName, ofType: nil)!
+//		let original = UIImage(contentsOfFile: path)!
+        if let path = Bundle.main.path(forResource: imageRootName, ofType: nil) {
+            let original = UIImage(contentsOfFile: path)
             
-            // MARK: - Option 2, part 2:
-			//ctx.cgContext.addEllipse(in: CGRect(origin: CGPoint.zero, size: original.size))
-            ctx.cgContext.addEllipse(in: renderRect)
-			ctx.cgContext.clip()
-
-			//original.draw(at: CGPoint.zero)
-            original.draw(in: renderRect)
-            // MARK: - End of option 2, part 2:
-		}
-
-		cell.imageView?.image = rounded
-
-		// give the images a nice shadow to make them look a bit more dramatic
-		cell.imageView?.layer.shadowColor = UIColor.black.cgColor
-		cell.imageView?.layer.shadowOpacity = 1
-		cell.imageView?.layer.shadowRadius = 10
-		cell.imageView?.layer.shadowOffset = CGSize.zero
-        // MARK: - Option 3:
-        cell.imageView?.layer.shadowPath = UIBezierPath(ovalIn: renderRect).cgPath
+            // MARK: - Option 2, part 1:
+            let renderRect = CGRect(origin: .zero, size: CGSize(width: 90, height: 90)) // <- Points, multiplied by 2 or 3, depending on the device.
+            //let renderer = UIGraphicsImageRenderer(size: original.size)
+            let renderer = UIGraphicsImageRenderer(size: renderRect.size)
+            // MARK: - End of option 2, part 1.
+            
+            let rounded = renderer.image { ctx in
+                // MARK: - Option 1:
+                //            ctx.cgContext.setShadow(offset: .zero, blur: 200, color: UIColor.black.cgColor)
+                //            ctx.cgContext.fillEllipse(in: CGRect(origin: .zero, size: original.size))
+                //            ctx.cgContext.setShadow(offset: .zero, blur: .zero, color: nil)
+                // MARK: - End of option 1.
+                
+                // MARK: - Option 2, part 2:
+                //ctx.cgContext.addEllipse(in: CGRect(origin: CGPoint.zero, size: original.size))
+                ctx.cgContext.addEllipse(in: renderRect)
+                ctx.cgContext.clip()
+                
+                //original.draw(at: CGPoint.zero)
+                original?.draw(in: renderRect)
+                // MARK: - End of option 2, part 2:
+            }
+            
+            cell.imageView?.image = rounded
+            
+            // give the images a nice shadow to make them look a bit more dramatic
+            cell.imageView?.layer.shadowColor = UIColor.black.cgColor
+            cell.imageView?.layer.shadowOpacity = 1
+            cell.imageView?.layer.shadowRadius = 10
+            cell.imageView?.layer.shadowOffset = CGSize.zero
+            // MARK: - Option 3:
+            cell.imageView?.layer.shadowPath = UIBezierPath(ovalIn: renderRect).cgPath
+        }
+        /// End of challenge 1, step 2.
+        
         // MARK: - End of option 3:
 
 		// each image stores how often it's been tapped
@@ -123,6 +139,8 @@ class SelectionViewController: UITableViewController {
     }
 
 	override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        
+        
 		let vc = ImageViewController()
 		vc.image = items[indexPath.row % items.count]
 		vc.owner = self
@@ -133,6 +151,8 @@ class SelectionViewController: UITableViewController {
         // MARK: - Delete:
 		// add to our view controller cache and show
 //		viewControllers.append(vc)
-		navigationController!.pushViewController(vc, animated: true)
+        
+        /// Challenge 1 bonus:
+		navigationController?.pushViewController(vc, animated: true)
 	}
 }
